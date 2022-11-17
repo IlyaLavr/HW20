@@ -55,7 +55,6 @@ func getData(urlRequest: String) {
                 print(error)
             }
         }
-
     }.resume()
 }
 
