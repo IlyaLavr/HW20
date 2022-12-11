@@ -1,4 +1,5 @@
 import UIKit
+import Foundation
 
 struct PrintConsole: Decodable {
     var cards: [Card]
@@ -26,14 +27,11 @@ var resourceString: String {
 var name: String {
     "?name="
 }
-var cardNameLotus = "black_lotus"
-var cardNameOpt = "Opt"
 
-let urlStringLotus = magiclUrl + versionString + resourceString + name + cardNameLotus
-let urlStringOpt = magiclUrl + versionString + resourceString + name + cardNameOpt
+let cardOptAndLotus = "opt|black_lotus"
+let urlStringName = magiclUrl + versionString + resourceString + name
 
-func getData(urlRequest: String) {
-    let urlRequest = URL(string: urlRequest)
+func getData(urlRequest: URL?) {
     guard let url = urlRequest else { return }
     URLSession.shared.dataTask(with: url) { data, responce, error in
         if error != nil {
@@ -41,24 +39,40 @@ func getData(urlRequest: String) {
         } else if let responce = responce as? HTTPURLResponse, responce.statusCode == 200 {
             guard let data = data else { return }
             do {
-                let cardConsole = try JSONDecoder().decode(PrintConsole.self, from: data)
-                print("""
-                          Имя карты: \(cardConsole.cards.first?.name ?? "")
-                          Тип: \(cardConsole.cards.first?.type ?? "")
-                          Мановая стоимость: \(cardConsole.cards.first?.manaCost ?? "")
-                          Название сета: \(cardConsole.cards.first?.setName ?? "")
-                          Редкость: \(cardConsole.cards.first?.rarity ?? "")
-                          Текст оракула: \(cardConsole.cards.first?.text ?? "")
-                          Сила карты: \(cardConsole.cards.first?.power ?? "Для этой карты нет значения")
-                          """)
+                var cardConsole = try JSONDecoder().decode(PrintConsole.self, from: data)
+                cardConsole.cards.removeAll { card in
+                    card.name != "Opt" && card.name != "Black Lotus"
+                }
+                cardConsole.cards.forEach { card in
+                    print("""
+                    Имя карты: \(card.name)
+                    Тип: \(card.type ?? "")
+                    Мановая стоимость: \(card.manaCost ?? "")
+                    Название сета: \(card.setName ?? "")
+                    Редкость: \(card.rarity ?? "")
+                    Текст оракула: \(card.text ?? "")
+                    Сила карты: \(card.power ?? "")
+                    \n
+                    """)
+                }
             } catch {
                 print(error)
             }
         }
-
     }.resume()
 }
 
-getData(urlRequest: urlStringLotus)
-getData(urlRequest: urlStringOpt)
+extension URL { func appending(_ queryItems: [URLQueryItem]) -> URL? {
+    guard var urlComponents = URLComponents(url: self, resolvingAgainstBaseURL: true) else {
+        return nil
+    }
+    urlComponents.queryItems = (urlComponents.queryItems ?? []) + queryItems
+    return urlComponents.url
+    }
+}
 
+let url = URL(string: urlStringName)
+let queryItems = [URLQueryItem(name: "name", value: cardOptAndLotus)]
+let newUrlTwoCard = url?.appending(queryItems)
+
+getData(urlRequest: newUrlTwoCard)
